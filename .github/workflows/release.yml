@@ -1,16 +1,22 @@
-name: Release
+name: Release Caddy HMAC Auth
 
 on:
-  workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - "caddy-hmac-auth-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build:
+    name: Build Caddy binaries
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -19,8 +25,9 @@ jobs:
             goarch: arm64
           - goos: darwin
             goarch: arm64
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Go
@@ -28,24 +35,79 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+      - name: Install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+
+      - name: Build Caddy with HMAC Auth plugin
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: go build ./...
-
-      - name: Create source archive
         run: |
-          set -euo pipefail
-          ref_name="${GITHUB_REF_NAME}"
-          archive="caddy-hmac-auth-${ref_name}.tar.gz"
-          git archive --format=tar.gz --prefix="caddy-hmac-auth-${ref_name}/" -o "${archive}" "${ref_name}"
-          sha256sum "${archive}" > checksums.txt
+          xcaddy build \
+            --with github.com/piedparker/caddy-hmac-auth=./ \
+            --output caddy-${{ matrix.goos }}-${{ matrix.goarch }}
 
-      - name: Publish release
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: caddy-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: caddy-${{ matrix.goos }}-${{ matrix.goarch }}*
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./binaries
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/caddy-hmac-auth-}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: caddy-hmac-auth-${{ steps.version.outputs.version }}
+          name: Caddy HMAC Auth ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
           files: |
-            caddy-hmac-auth-*.tar.gz
-            checksums.txt
+            binaries/**/*
+          body: |
+            ## Caddy with HMAC Authentication Plugin
+
+            Custom Caddy build with HMAC-SHA256 signature authentication middleware.
+
+            ### Features
+            - HMAC-SHA256 signature verification
+            - Timestamp-based replay protection
+            - Request ID (nonce) validation
+            - Configurable time windows and nonce TTL
+
+            ### Installation
+            Download the binary for your platform and make it executable:
+            ```bash
+            # Linux/macOS
+            chmod +x caddy-*
+            ./caddy-* version
+            ```
+
+            ### Usage
+            See the [README](https://github.com/${{ github.repository }}/tree/main) for configuration examples.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}name: Release
