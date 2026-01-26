@@ -1,9 +1,9 @@
-name: Release Caddy HMAC Auth
+name: Release Caddy Plugins
 
 on:
   push:
     tags:
-      - "caddy-hmac-auth-v*"
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
@@ -38,14 +38,14 @@ jobs:
       - name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
-      - name: Build Caddy with HMAC Auth plugin
+      - name: Build Caddy with pied-caddy-build plugins
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
           xcaddy build \
-            --with github.com/piedparker/caddy-hmac-auth=./ \
+            --with github.com/piedparker/pied-caddy-build=./ \
             --output caddy-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload binary artifact
@@ -69,29 +69,33 @@ jobs:
         with:
           path: ./binaries
 
-      - name: Determine version
+      - name: Determine version and plugin
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
+            PLUGIN="all"
           else
-            VERSION="${GITHUB_REF#refs/tags/caddy-hmac-auth-}"
+            VERSION="${GITHUB_REF#refs/tags/}"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: caddy-hmac-auth-${{ steps.version.outputs.version }}
-          name: Caddy HMAC Auth ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: Pied Caddy Build ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
           files: |
             binaries/**/*
           body: |
-            ## Caddy with HMAC Authentication Plugin
+            ## Caddy with pied-caddy-build Plugins
 
-            Custom Caddy build with HMAC-SHA256 signature authentication middleware.
+            Complete Caddy build with all pied-caddy-build plugins included.
+
+            ### Included Plugins
+            - **hmac_auth**: HMAC-SHA256 signature authentication middleware
 
             ### Features
             - HMAC-SHA256 signature verification
