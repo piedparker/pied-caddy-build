@@ -27,6 +27,7 @@ const (
 func init() {
 	caddy.RegisterModule(HMACMiddleware{})
 	httpcaddyfile.RegisterHandlerDirective("hmac_auth", parseCaddyfile)
+	httpcaddyfile.RegisterDirectiveOrder("hmac_auth", httpcaddyfile.Before, "reverse_proxy")
 }
 
 func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
