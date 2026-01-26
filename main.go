@@ -14,6 +14,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
@@ -25,6 +26,15 @@ const (
 
 func init() {
 	caddy.RegisterModule(HMACMiddleware{})
+	httpcaddyfile.RegisterHandlerDirective("hmac_auth", parseCaddyfile)
+}
+
+func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
+	var m HMACMiddleware
+	if err := m.UnmarshalCaddyfile(h.Dispenser); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 type HMACMiddleware struct {
@@ -169,7 +179,7 @@ func (m *HMACMiddleware) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.ArgErr()
 				}
 				m.Secret = d.Val()
-				
+
 			case "window":
 				if !d.NextArg() {
 					return d.ArgErr()
