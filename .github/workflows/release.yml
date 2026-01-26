@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: Create source archive
+        run: |
+          set -euo pipefail
+          ref_name="${GITHUB_REF_NAME}"
+          archive="caddy-hmac-auth-${ref_name}.tar.gz"
+          git archive --format=tar.gz --prefix="caddy-hmac-auth-${ref_name}/" -o "${archive}" "${ref_name}"
+          sha256sum "${archive}" > checksums.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            caddy-hmac-auth-*.tar.gz
+            checksums.txt
