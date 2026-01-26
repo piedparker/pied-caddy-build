@@ -110,4 +110,4 @@ jobs:
             ### Usage
             See the [README](https://github.com/${{ github.repository }}/tree/main) for configuration examples.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}name: Release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
