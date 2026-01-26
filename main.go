@@ -1,6 +1,6 @@
-package main
+package piedcaddybuild
 
-// This file serves as the build entrypoint for pied-caddy-build.
+// This file serves as the module registry for pied-caddy-build.
 // It imports all plugins to ensure they are registered with Caddy.
 //
 // To add a new plugin:
@@ -12,15 +12,9 @@ package main
 //   import _ "github.com/piedparker/pied-caddy-build/plugins/my-plugin"
 
 import (
-	caddycmd "github.com/caddyserver/caddy/v2/cmd"
-
-	// Import Caddy's standard modules for a complete build
-	_ "github.com/caddyserver/caddy/v2/modules/standard"
-
 	// hmac_auth plugin - HMAC-SHA256 signature authentication middleware
 	_ "github.com/piedparker/pied-caddy-build/plugins/hmac-auth"
 )
 
-func main() {
-	caddycmd.Main()
-}
+// Plugins imported above are automatically initialized and registered
+// with the Caddy server when this module is imported by xcaddy's generated main.
