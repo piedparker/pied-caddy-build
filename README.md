@@ -56,16 +56,31 @@ To add a new plugin to pied-caddy-build:
 
 ### Building Locally
 
-Ensure you have [Go 1.25+](https://golang.org/dl/) installed, then:
+The easiest way to build is using the provided Makefile. Ensure you have [Go 1.25+](https://golang.org/dl/) installed, then:
+
+```bash
+# Build for Linux ARM64
+make build-linux
+
+# Build for macOS ARM64
+make build-darwin
+
+# Build for all supported platforms
+make build-all
+```
+
+The resulting `caddy-*` binaries will include all registered plugins.
+
+### Manual Building
+
+If you prefer to build manually without the Makefile:
 
 ```bash
 go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 xcaddy build --with github.com/piedparker/pied-caddy-build=./
 ```
 
-The resulting `caddy` binary will include all registered plugins.
-
-### Building for Different Platforms
+For different platforms:
 
 ```bash
 # Linux ARM64
