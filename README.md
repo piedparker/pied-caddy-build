@@ -8,12 +8,15 @@ This project is designed to be extensible, allowing for the addition of new Cadd
 
 ```
 pied-caddy-build/
-├── cmd/
-│   └── caddy/          # Caddy entrypoint with plugin imports
+├── main.go             # Caddy entrypoint with plugin imports
+├── Makefile            # Build targets for cross-platform compilation
+├── go.mod              # Go module definition
 ├── plugins/
 │   └── hmac-auth/      # HMAC authentication plugin
+│       ├── handler.go  # Plugin implementation
+│       └── README.md   # Plugin documentation
 ├── .github/workflows/  # CI/CD automation
-└── README.md
+└── README.md           # Project documentation
 ```
 
 ## Plugins
@@ -29,63 +32,7 @@ HMAC-SHA256 signature authentication middleware for Caddy.
 - Automatic header stripping to prevent upstream visibility
 - Efficient in-memory nonce cache with periodic garbage collection
 
-**Configuration:**
-
-```caddyfile
-{
-  http {
-    servers {
-      :443 {
-        protocols h1 h2 h3
-      }
-    }
-  }
-}
-
-example.com {
-  hmac_auth {
-    secret "your-secret-key"
-    window 60s
-    nonce_ttl 5m
-  }
-  reverse_proxy localhost:8080
-}
-```
-
-**Request Requirements:**
-
-Clients must include these headers in each request:
-- `X-Timestamp`: Unix timestamp (seconds since epoch)
-- `X-Request-ID`: Unique request identifier (nonce)
-- `X-Signature`: Base64url-encoded HMAC-SHA256 signature
-
-**Signature Calculation:**
-
-```
-canonical_string = METHOD\nPATH[?QUERY]\nTIMESTAMP\nNONCE
-signature = base64url(HMAC-SHA256(secret, canonical_string))
-```
-
-Example in Python:
-```python
-import hmac
-import hashlib
-import base64
-from datetime import datetime
-
-secret = "your-secret-key"
-method = "GET"
-path = "/api/endpoint"
-timestamp = str(int(datetime.utcnow().timestamp()))
-nonce = "unique-request-id-1234"
-
-canonical = f"{method}\n{path}\n{timestamp}\n{nonce}"
-sig = base64.urlsafe_b64encode(
-    hmac.new(secret.encode(), canonical.encode(), hashlib.sha256).digest()
-).rstrip(b'=').decode()
-
-print(f"X-Signature: {sig}")
-```
+For detailed documentation, configuration examples, client implementations, and security considerations, see [plugins/hmac-auth/README.md](plugins/hmac-auth/README.md).
 
 ## Adding New Plugins
 
@@ -98,7 +45,7 @@ To add a new plugin to pied-caddy-build:
 
 2. Implement your Caddy plugin in the new directory. Make sure to register it with Caddy's module system in an `init()` function.
 
-3. Add an import in [cmd/caddy/main.go](cmd/caddy/main.go) to register your plugin:
+3. Add an import in [main.go](main.go) to register your plugin:
    ```go
    import _ "github.com/piedparker/pied-caddy-build/plugins/my-plugin"
    ```
